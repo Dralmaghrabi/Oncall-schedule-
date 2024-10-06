@@ -24,7 +24,7 @@
     <div id="onCallConsultant">Loading...</div>
 
     <script>
-        const sheetID = '1-s7A-sGm19mClB1ryzEYbAWIm9hptVoPqjKZTs9ho7A';  // New Google Sheets ID
+        const sheetID = '1-s7A-sGm19mClB1ryzEYbAWIm9hptVoPqjKZTs9ho7A';  // Your Google Sheets ID
         const apiKey = 'AIzaSyAAv9OhKvEt5A6dpzr3gSfAEDiu8_IL8PQ';  // Your API Key
 
         async function fetchConsultantSchedule() {
@@ -37,6 +37,13 @@
 
         function getCurrentOnCall(schedule) {
             const today = new Date();
+            const currentHour = today.getHours();  // Get the current hour (0-23)
+
+            // If current time is before 8 AM, use the previous day's date
+            if (currentHour < 8) {
+                today.setDate(today.getDate() - 1);  // Subtract 1 day
+            }
+
             const currentDate = today.toLocaleDateString('en-GB');  // Format as DD/MM/YYYY
             const currentConsultant = schedule.find(row => row[0] === currentDate);
             return currentConsultant;
