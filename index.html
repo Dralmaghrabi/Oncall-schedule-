@@ -28,7 +28,7 @@
         const apiKey = 'AIzaSyAAv9OhKvEt5A6dpzr3gSfAEDiu8_IL8PQ';  // Your API Key
 
         async function fetchConsultantSchedule() {
-            const range = 'Sheet1!A1:E';  // Adjust the range based on your sheet structure
+            const range = 'Sheet1!A1:E';  // Adjusted range to A1:E based on the columns in your sheet
             const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetID}/values/${range}?key=${apiKey}`;
             const response = await fetch(url);
             const data = await response.json();
@@ -50,8 +50,8 @@
             if (onCallConsultant) {
                 resultDiv.innerHTML = `
                     <strong>Doctor:</strong> ${onCallConsultant[2]} <br>
-                    <strong>Contact:</strong> ${onCallConsultant[3]} <br>
-                    <strong>Duty Time:</strong> ${onCallConsultant[1]}
+                    <strong>Contact:</strong> ${onCallConsultant[4]} <br>
+                    <strong>Duty Time:</strong> ${onCallConsultant[3]}
                 `;
             } else {
                 resultDiv.innerHTML = 'No consultant is currently on call.';
