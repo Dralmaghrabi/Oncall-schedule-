@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultant On-Call Information</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        #onCallConsultant {
+            padding: 20px;
+            background-color: #f4f4f4;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h1>Consultant On-Call Information</h1>
+    <div id="onCallConsultant">Loading...</div>
+
+    <script>
+        const sheetID = '14d9VWCmjCE7_PcbLk73nLod08Y4eMlVB';  // Your Google Sheets ID
+        const apiKey = 'AIzaSyAAv9OhKvEt5A6dpzr3gSfAEDiu8_IL8PQ';  // Your API Key
+
+        async function fetchConsultantSchedule() {
+            const range = 'Consultants!A1:D';  // Adjust the range based on your sheet structure
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetID}/values/${range}?key=${apiKey}`;
+            const response = await fetch(url);
+            const data = await response.json();
+            return data.values;
+        }
+
+        function getCurrentOnCall(schedule) {
+            const today = new Date();
+            const currentDate = today.toLocaleDateString('en-GB');  // Format as DD/MM/YYYY
+            const currentConsultant = schedule.find(row => row[0] === currentDate);
+            return currentConsultant;
+        }
+
+        async function displayOnCallConsultant() {
+            const schedule = await fetchConsultantSchedule();
+            const onCallConsultant = getCurrentOnCall(schedule);
+
+            const resultDiv = document.getElementById('onCallConsultant');
+            if (onCallConsultant) {
+                resultDiv.innerHTML = `
+                    <strong>Doctor:</strong> ${onCallConsultant[2]} <br>
+                    <strong>Contact:</strong> ${onCallConsultant[3]} <br>
+                    <strong>Duty Time:</strong> ${onCallConsultant[1]}
+                `;
+            } else {
+                resultDiv.innerHTML = 'No consultant is currently on call.';
+            }
+        }
+
+        window.onload = displayOnCallConsultant;
+    </script>
+</body>
+</html>
