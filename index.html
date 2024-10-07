@@ -22,9 +22,6 @@
             font-weight: bold;
         }
 
-        .doctor-info {
-            font-weight: bold;
-        }
     </style>
 </head>
 <body>
@@ -96,7 +93,7 @@
             const consultantDiv = document.getElementById('consultant');
             if (consultantOnCall) {
                 consultantDiv.innerHTML = `
-                    <p class="doctor-info">Doctor: ${consultantOnCall.doctor}</p>
+                    <p>Doctor: ${consultantOnCall.doctor}</p>
                     <p>Contact: ${consultantOnCall.contact}</p>
                     <p>Duty Time: ${consultantOnCall.dutyTime}</p>
                 `;
@@ -113,7 +110,7 @@
             const specialistDiv = document.getElementById('specialist');
             if (specialistOnCall) {
                 specialistDiv.innerHTML = `
-                    <p class="doctor-info">ER: ${specialistOnCall.erDoctor || 'N/A'}</p>
+                    <p>ER: ${specialistOnCall.erDoctor || 'N/A'}</p>
                     <p>Ward: ${specialistOnCall.wardDoctor || 'N/A'}</p>
                     <p>Duty Time: ${specialistOnCall.shift}</p>
                 `;
