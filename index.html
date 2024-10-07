@@ -7,116 +7,111 @@
     <style>
         body {
             font-family: Arial, sans-serif;
+        }
+        .container {
             margin: 20px;
         }
-        h2 {
-            color: #2c3e50;
+        h1 {
+            text-align: center;
         }
         .schedule {
-            margin-bottom: 20px;
-            padding: 10px;
             border: 1px solid #ccc;
-            background-color: #f9f9f9;
+            padding: 10px;
+            margin-bottom: 20px;
         }
-        .schedule strong {
-            display: block;
-            margin-bottom: 5px;
+        .section-title {
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <h2>Consultant On-Call Information</h2>
-    <div id="consultant-schedule" class="schedule">Loading consultant data...</div>
 
-    <h2>Specialist On-Call Information</h2>
-    <div id="specialist-schedule" class="schedule">Loading specialist data...</div>
+<div class="container">
+    <h1>On-Call Schedules</h1>
+    <div class="schedule">
+        <h2>Consultant On-Call</h2>
+        <p id="consultant">Loading Consultant data...</p>
+    </div>
+    <div class="schedule">
+        <h2>Specialist On-Call</h2>
+        <p id="specialist">Loading Specialist data...</p>
+    </div>
+</div>
 
-    <script>
-        // Google Sheets API setup
-        const apiKey = 'AIzaSyAAv9OhKvEt5A6dpzr3gSfAEDiu8_IL8PQ';  // Your provided API key
-        const sheetId = '1-s7A-sGm19mClB1ryzEYbAWIm9hptVoPqjKZTs9ho7A'; // Google Sheet ID
+<script>
+    const API_KEY = 'AIzaSyAAv9OhKvEt5A6dpzr3gSfAEDiu8_IL8PQ';
+    const SPREADSHEET_ID = '1-s7A-sGm19mClB1ryzEYbAWIm9hptVoPqjKZTs9ho7A';
+    const CONSULTANT_RANGE = 'Sheet1!A:E';
+    const SPECIALIST_RANGE = 'Sheet2!A:H';
 
-        // Sheet URLs for Consultant (Sheet1) and Specialist (Sheet2)
-        const consultantUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Sheet1?key=${apiKey}`;
-        const specialistUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Sheet2?key=${apiKey}`;
+    function getCurrentDateTime() {
+        const now = new Date();
+        const date = now.toISOString().split('T')[0];  // Get date in YYYY-MM-DD format
+        const time = now.getHours() + ':' + now.getMinutes(); // Get time in HH:MM format
+        return { date, time };
+    }
 
-        // Function to fetch data from Google Sheets
-        async function fetchData(url) {
-            const response = await fetch(url);
-            const data = await response.json();
-            return data.values;  // Assuming the data is in 'values' array
+    function isCurrentShift(startTime, endTime, currentTime) {
+        const [startHour, startMinute] = startTime.split(':').map(Number);
+        const [endHour, endMinute] = endTime.split(':').map(Number);
+        const [currentHour, currentMinute] = currentTime.split(':').map(Number);
+
+        const start = startHour * 60 + startMinute;
+        const end = endHour * 60 + endMinute;
+        const current = currentHour * 60 + currentMinute;
+
+        if (start < end) {
+            return current >= start && current <= end;
+        } else {
+            return current >= start || current <= end;
         }
+    }
 
-        // Helper function to format date as yyyy-mm-dd
-        function formatDate(date) {
-            return date.toISOString().split('T')[0];
+    function fetchData(range, callback) {
+        fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${API_KEY}`)
+            .then(response => response.json())
+            .then(data => callback(data.values))
+            .catch(error => console.error('Error:', error));
+    }
+
+    function displayConsultantData(data) {
+        const { date, time } = getCurrentDateTime();
+        const currentConsultant = data.find(row => row[0] === date);
+        const consultantElement = document.getElementById('consultant');
+
+        if (currentConsultant) {
+            consultantElement.innerHTML = `
+                <strong>Doctor:</strong> ${currentConsultant[3]}<br>
+                <strong>Contact:</strong> ${currentConsultant[4]}<br>
+                <strong>Duty Time:</strong> ${currentConsultant[2]} - ${currentConsultant[3]}
+            `;
+        } else {
+            consultantElement.innerHTML = 'No consultant is currently on-call.';
         }
+    }
 
-        // Function to get the current consultant or specialist based on the current date and time
-        function getCurrentOnDuty(data) {
-            const now = new Date();
-            const currentDate = formatDate(now);
-            const currentHour = now.getHours();
-            let currentRow = null;
+    function displaySpecialistData(data) {
+        const { date, time } = getCurrentDateTime();
+        const currentSpecialist = data.find(row => row[0] === date);
+        const specialistElement = document.getElementById('specialist');
 
-            data.forEach((row, index) => {
-                if (index > 0) {  // Skip header row
-                    const rowDate = row[0];
-                    if (rowDate === currentDate) {
-                        // For consultants: check if current hour is within duty time (08:00 to 08:00)
-                        if (currentHour >= 8 || currentHour < 8) {
-                            currentRow = row;
-                        }
-                    }
-                }
-            });
-
-            return currentRow;
+        if (currentSpecialist) {
+            specialistElement.innerHTML = `
+                <strong>ER Specialist:</strong> ${currentSpecialist[3]}<br>
+                <strong>ER Contact:</strong> ${currentSpecialist[4]}<br>
+                <strong>Shift 1 (08:00 - 16:00):</strong> ${currentSpecialist[3]}<br>
+                <strong>Shift 2 (16:00 - 00:00):</strong> ${currentSpecialist[5]}<br>
+                <strong>Shift 3 (00:00 - 08:00):</strong> ${currentSpecialist[6]}
+            `;
+        } else {
+            specialistElement.innerHTML = 'No specialist is currently on-call.';
         }
+    }
 
-        // Function to display the Consultant data (Sheet1)
-        function displayConsultantData(data) {
-            const consultantDiv = document.getElementById('consultant-schedule');
-            const currentRow = getCurrentOnDuty(data);
-            consultantDiv.innerHTML = ""; // Clear previous data
+    fetchData(CONSULTANT_RANGE, displayConsultantData);
+    fetchData(SPECIALIST_RANGE, displaySpecialistData);
 
-            if (currentRow) {
-                consultantDiv.innerHTML = `<strong>Doctor:</strong> ${currentRow[1]} <br><strong>Contact:</strong> ${currentRow[4]} <br><strong>Duty Time:</strong> ${currentRow[2]} - ${currentRow[3]}`;
-            } else {
-                consultantDiv.innerHTML = "No consultant is currently on call.";
-            }
-        }
+</script>
 
-        // Function to display the Specialist data (Sheet2)
-        function displaySpecialistData(data) {
-            const specialistDiv = document.getElementById('specialist-schedule');
-            const currentRow = getCurrentOnDuty(data);
-            specialistDiv.innerHTML = ""; // Clear previous data
-
-            if (currentRow) {
-                specialistDiv.innerHTML = `<strong>Date:</strong> ${currentRow[0]} (${currentRow[1]}) <br>
-                                           <strong>Shift 1 (ER):</strong> ${currentRow[2]} <br>
-                                           <strong>Shift 2 (ER):</strong> ${currentRow[3]} <br>
-                                           <strong>Shift 2 (Ward):</strong> ${currentRow[4]} <br>
-                                           <strong>Shift 3 (ER):</strong> ${currentRow[5]} <br>
-                                           <strong>Shift 3 (Ward):</strong> ${currentRow[6]}`;
-            } else {
-                specialistDiv.innerHTML = "No specialist is currently on call.";
-            }
-        }
-
-        // Function to handle loading the data
-        async function loadSchedules() {
-            const consultantData = await fetchData(consultantUrl);
-            const specialistData = await fetchData(specialistUrl);
-
-            // Display both Consultant and Specialist schedules
-            displayConsultantData(consultantData);
-            displaySpecialistData(specialistData);
-        }
-
-        // Load the data when the page is ready
-        document.addEventListener('DOMContentLoaded', loadSchedules);
-    </script>
 </body>
 </html>
