@@ -52,22 +52,36 @@
             return data.values;
         }
 
-        // Function to determine the current on-call doctor for consultant or specialist
-        function findCurrentOnCall(data) {
+        // Function to determine the current shift for consultant or specialist
+        function findCurrentShift(data, sheetName) {
             const now = new Date();
             const todayStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
             for (let i = 1; i < data.length; i++) {
-                const [date, , erShift1, erShift2, wardShift2, erShift3, wardShift3] = data[i];
+                const row = data[i];
+                const date = row[0];  // First column is the date
+
                 if (date === todayStr) {
                     const currentHour = now.getHours();
+                    
+                    // For consultants, there is only one column with duty
+                    if (sheetName === 'Sheet1') {
+                        return {
+                            doctor: row[2],
+                            dutyTime: row[3],
+                            contact: row[4]
+                        };
+                    }
 
-                    if (currentHour >= 8 && currentHour < 16) {
-                        return { erDoctor: erShift1, wardDoctor: null, shift: '08:00 - 16:00' };
-                    } else if (currentHour >= 16 && currentHour < 24) {
-                        return { erDoctor: erShift2, wardDoctor: wardShift2, shift: '16:00 - 00:00' };
-                    } else {
-                        return { erDoctor: erShift3, wardDoctor: wardShift3, shift: '00:00 - 08:00' };
+                    // For specialists, there are different shifts (columns for ER and Ward)
+                    if (sheetName === 'Sheet2') {
+                        if (currentHour >= 8 && currentHour < 16) {
+                            return { erDoctor: row[2], wardDoctor: null, shift: '08:00 - 16:00' };  // Shift 1 ER only
+                        } else if (currentHour >= 16 && currentHour < 24) {
+                            return { erDoctor: row[3], wardDoctor: row[4], shift: '16:00 - 00:00' };  // Shift 2 ER + Ward
+                        } else {
+                            return { erDoctor: row[5], wardDoctor: row[6], shift: '00:00 - 08:00' };  // Shift 3 ER + Ward
+                        }
                     }
                 }
             }
@@ -77,13 +91,14 @@
         // Display consultant on-call information
         async function displayConsultantOnCall() {
             const data = await fetchData('Sheet1');
-            const consultantOnCall = findCurrentOnCall(data);
+            const consultantOnCall = findCurrentShift(data, 'Sheet1');
 
             const consultantDiv = document.getElementById('consultant');
             if (consultantOnCall) {
                 consultantDiv.innerHTML = `
-                    <p class="doctor-info">Doctor: ${consultantOnCall.erDoctor}</p>
-                    <p>Duty Time: ${consultantOnCall.shift}</p>
+                    <p class="doctor-info">Doctor: ${consultantOnCall.doctor}</p>
+                    <p>Contact: ${consultantOnCall.contact}</p>
+                    <p>Duty Time: ${consultantOnCall.dutyTime}</p>
                 `;
             } else {
                 consultantDiv.textContent = 'No consultant is currently on-call.';
@@ -93,7 +108,7 @@
         // Display specialist on-call information
         async function displaySpecialistOnCall() {
             const data = await fetchData('Sheet2');
-            const specialistOnCall = findCurrentOnCall(data);
+            const specialistOnCall = findCurrentShift(data, 'Sheet2');
 
             const specialistDiv = document.getElementById('specialist');
             if (specialistOnCall) {
