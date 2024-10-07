@@ -25,10 +25,10 @@
     </style>
 </head>
 <body>
-    <h2>Consultant On-Call Schedule</h2>
+    <h2>Consultant On-Call Information</h2>
     <div id="consultant-schedule" class="schedule">Loading consultant data...</div>
 
-    <h2>Specialist On-Call Schedule</h2>
+    <h2>Specialist On-Call Information</h2>
     <div id="specialist-schedule" class="schedule">Loading specialist data...</div>
 
     <script>
@@ -47,37 +47,62 @@
             return data.values;  // Assuming the data is in 'values' array
         }
 
-        // Function to display the Consultant data (Sheet1)
-        function displayConsultantData(data) {
-            const consultantDiv = document.getElementById('consultant-schedule');
-            consultantDiv.innerHTML = ""; // Clear previous data
+        // Helper function to format date as yyyy-mm-dd
+        function formatDate(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        // Function to get the current consultant or specialist based on the current date and time
+        function getCurrentOnDuty(data) {
+            const now = new Date();
+            const currentDate = formatDate(now);
+            const currentHour = now.getHours();
+            let currentRow = null;
 
             data.forEach((row, index) => {
                 if (index > 0) {  // Skip header row
-                    const div = document.createElement('div');
-                    div.innerHTML = `<strong>Doctor:</strong> ${row[1]} <br><strong>Contact:</strong> ${row[4]} <br><strong>Duty Time:</strong> ${row[2]} - ${row[3]}`;
-                    consultantDiv.appendChild(div);
+                    const rowDate = row[0];
+                    if (rowDate === currentDate) {
+                        // For consultants: check if current hour is within duty time (08:00 to 08:00)
+                        if (currentHour >= 8 || currentHour < 8) {
+                            currentRow = row;
+                        }
+                    }
                 }
             });
+
+            return currentRow;
+        }
+
+        // Function to display the Consultant data (Sheet1)
+        function displayConsultantData(data) {
+            const consultantDiv = document.getElementById('consultant-schedule');
+            const currentRow = getCurrentOnDuty(data);
+            consultantDiv.innerHTML = ""; // Clear previous data
+
+            if (currentRow) {
+                consultantDiv.innerHTML = `<strong>Doctor:</strong> ${currentRow[1]} <br><strong>Contact:</strong> ${currentRow[4]} <br><strong>Duty Time:</strong> ${currentRow[2]} - ${currentRow[3]}`;
+            } else {
+                consultantDiv.innerHTML = "No consultant is currently on call.";
+            }
         }
 
         // Function to display the Specialist data (Sheet2)
         function displaySpecialistData(data) {
             const specialistDiv = document.getElementById('specialist-schedule');
+            const currentRow = getCurrentOnDuty(data);
             specialistDiv.innerHTML = ""; // Clear previous data
 
-            data.forEach((row, index) => {
-                if (index > 0) {  // Skip header row
-                    const div = document.createElement('div');
-                    div.innerHTML = `<strong>Date:</strong> ${row[0]} (${row[1]}) <br>
-                                     <strong>Shift 1 (ER):</strong> ${row[2]} <br>
-                                     <strong>Shift 2 (ER):</strong> ${row[3]} <br>
-                                     <strong>Shift 2 (Ward):</strong> ${row[4]} <br>
-                                     <strong>Shift 3 (ER):</strong> ${row[5]} <br>
-                                     <strong>Shift 3 (Ward):</strong> ${row[6]}`;
-                    specialistDiv.appendChild(div);
-                }
-            });
+            if (currentRow) {
+                specialistDiv.innerHTML = `<strong>Date:</strong> ${currentRow[0]} (${currentRow[1]}) <br>
+                                           <strong>Shift 1 (ER):</strong> ${currentRow[2]} <br>
+                                           <strong>Shift 2 (ER):</strong> ${currentRow[3]} <br>
+                                           <strong>Shift 2 (Ward):</strong> ${currentRow[4]} <br>
+                                           <strong>Shift 3 (ER):</strong> ${currentRow[5]} <br>
+                                           <strong>Shift 3 (Ward):</strong> ${currentRow[6]}`;
+            } else {
+                specialistDiv.innerHTML = "No specialist is currently on call.";
+            }
         }
 
         // Function to handle loading the data
