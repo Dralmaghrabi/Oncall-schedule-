@@ -12,17 +12,24 @@
         h2 {
             color: #2c3e50;
         }
-        div {
+        .schedule {
             margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+        }
+        .schedule strong {
+            display: block;
+            margin-bottom: 5px;
         }
     </style>
 </head>
 <body>
     <h2>Consultant On-Call Schedule</h2>
-    <div id="consultant-schedule">Loading consultant data...</div>
+    <div id="consultant-schedule" class="schedule">Loading consultant data...</div>
 
     <h2>Specialist On-Call Schedule</h2>
-    <div id="specialist-schedule">Loading specialist data...</div>
+    <div id="specialist-schedule" class="schedule">Loading specialist data...</div>
 
     <script>
         // Google Sheets API setup
@@ -48,7 +55,7 @@
             data.forEach((row, index) => {
                 if (index > 0) {  // Skip header row
                     const div = document.createElement('div');
-                    div.innerHTML = `<strong>${row[0]}</strong> - ${row[1]} (Contact: ${row[2]})`;
+                    div.innerHTML = `<strong>Doctor:</strong> ${row[1]} <br><strong>Contact:</strong> ${row[4]} <br><strong>Duty Time:</strong> ${row[2]} - ${row[3]}`;
                     consultantDiv.appendChild(div);
                 }
             });
@@ -62,7 +69,12 @@
             data.forEach((row, index) => {
                 if (index > 0) {  // Skip header row
                     const div = document.createElement('div');
-                    div.innerHTML = `<strong>${row[0]}</strong> - ${row[1]} (Contact: ${row[2]})`;
+                    div.innerHTML = `<strong>Date:</strong> ${row[0]} (${row[1]}) <br>
+                                     <strong>Shift 1 (ER):</strong> ${row[2]} <br>
+                                     <strong>Shift 2 (ER):</strong> ${row[3]} <br>
+                                     <strong>Shift 2 (Ward):</strong> ${row[4]} <br>
+                                     <strong>Shift 3 (ER):</strong> ${row[5]} <br>
+                                     <strong>Shift 3 (Ward):</strong> ${row[6]}`;
                     specialistDiv.appendChild(div);
                 }
             });
