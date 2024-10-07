@@ -60,15 +60,14 @@
             for (let i = 1; i < data.length; i++) {
                 const [date, , erShift1, erShift2, wardShift2, erShift3, wardShift3] = data[i];
                 if (date === todayStr) {
-                    // Determine which shift is currently active based on the current time
                     const currentHour = now.getHours();
 
                     if (currentHour >= 8 && currentHour < 16) {
-                        return { doctor: erShift1, shift: '08:00 - 16:00' };
-                    } else if (currentHour >= 16 && currentHour < 0) {
-                        return { doctor: erShift2, wardDoctor: wardShift2, shift: '16:00 - 00:00' };
+                        return { erDoctor: erShift1, wardDoctor: null, shift: '08:00 - 16:00' };
+                    } else if (currentHour >= 16 && currentHour < 24) {
+                        return { erDoctor: erShift2, wardDoctor: wardShift2, shift: '16:00 - 00:00' };
                     } else {
-                        return { doctor: erShift3, wardDoctor: wardShift3, shift: '00:00 - 08:00' };
+                        return { erDoctor: erShift3, wardDoctor: wardShift3, shift: '00:00 - 08:00' };
                     }
                 }
             }
@@ -83,7 +82,7 @@
             const consultantDiv = document.getElementById('consultant');
             if (consultantOnCall) {
                 consultantDiv.innerHTML = `
-                    <p class="doctor-info">Doctor: ${consultantOnCall.doctor}</p>
+                    <p class="doctor-info">Doctor: ${consultantOnCall.erDoctor}</p>
                     <p>Duty Time: ${consultantOnCall.shift}</p>
                 `;
             } else {
@@ -99,8 +98,8 @@
             const specialistDiv = document.getElementById('specialist');
             if (specialistOnCall) {
                 specialistDiv.innerHTML = `
-                    <p class="doctor-info">ER Doctor: ${specialistOnCall.doctor}</p>
-                    <p>Ward Doctor: ${specialistOnCall.wardDoctor || 'N/A'}</p>
+                    <p class="doctor-info">ER: ${specialistOnCall.erDoctor || 'N/A'}</p>
+                    <p>Ward: ${specialistOnCall.wardDoctor || 'N/A'}</p>
                     <p>Duty Time: ${specialistOnCall.shift}</p>
                 `;
             } else {
