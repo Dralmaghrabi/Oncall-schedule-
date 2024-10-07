@@ -7,140 +7,113 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-        }
-        .container {
-            width: 90%;
-            margin: 20px auto;
-            text-align: center;
+            margin: 20px;
         }
         .card {
-            border: 1px solid #000;
+            border: 1px solid #ccc;
             padding: 15px;
-            margin: 10px;
-            border-radius: 8px;
+            margin-bottom: 20px;
         }
         .card h2 {
-            font-size: 24px;
-            margin-bottom: 10px;
-        }
-        .card p {
-            font-size: 18px;
+            margin-top: 0;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>On-Call Schedules</h1>
-        <div class="card" id="consultant-info">
-            <h2>Consultant On-Call</h2>
-            <p>No consultant is currently on-call.</p>
-        </div>
-        <div class="card" id="specialist-info">
-            <h2>Specialist On-Call</h2>
-            <p>Loading...</p>
-        </div>
+
+    <h1>On-Call Schedules</h1>
+
+    <div class="card">
+        <h2>Consultant On-Call</h2>
+        <div id="consultantOnCall">Loading...</div>
+    </div>
+
+    <div class="card">
+        <h2>Specialist On-Call</h2>
+        <div id="specialistOnCall">Loading...</div>
     </div>
 
     <script>
-        const apiKey = "AIzaSyAAv9OhKvEt5A6dpzr3gSfAEDiu8_IL8PQ";
-        const sheetId = "1-s7A-sGm19mClB1ryzEYbAWIm9hptVoPqjKZTs9ho7A";
-        const consultantSheet = "Sheet1";
-        const specialistSheet = "Sheet2";
+        // Assuming date format in Google Sheets: DD/MM/YYYY
+        function fetchConsultantAndSpecialistData() {
+            const currentTime = new Date();
+            const currentHour = currentTime.getHours();
+            const currentDay = currentTime.getDate();
+            const currentMonth = currentTime.getMonth() + 1; // Month is 0-indexed
+            const currentYear = currentTime.getFullYear();
 
-        function fetchData(sheetName, callback) {
-            const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${sheetName}?key=${apiKey}`;
-            fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    const rows = data.values.slice(1); // Skip headers
-                    callback(rows);
-                })
-                .catch(error => console.error('Error fetching data:', error));
+            const formattedDate = `${currentDay.toString().padStart(2, '0')}/${currentMonth.toString().padStart(2, '0')}/${currentYear}`;
+
+            fetchConsultantData(formattedDate, currentHour);
+            fetchSpecialistData(formattedDate, currentHour);
         }
 
-        function findCurrentShift(data) {
-            const now = new Date();
-            for (const row of data) {
-                const [dateStr, , doctor, dutyTime, contact] = row;
-                const [startTimeStr, endTimeStr] = dutyTime.split(" - ");
-                
-                const dateParts = dateStr.split("/");
-                const startTime = new Date(`${dateParts[2]}-${dateParts[1]}-${dateParts[0]}T${startTimeStr}:00`);
-                const endTime = new Date(`${dateParts[2]}-${dateParts[1]}-${dateParts[0]}T${endTimeStr}:00`);
-                
-                if (endTime < startTime) {
-                    endTime.setDate(endTime.getDate() + 1); // Handle overnight shifts
+        function fetchConsultantData(date, hour) {
+            fetch('https://sheets.googleapis.com/v4/spreadsheets/14d9VWCmjCE7_PcbLk73nLod08Y4eMlVB/values/Sheet1?key=AIzaSyAAv9OhKvEt5A6dpzr3gSfAEDiu8_IL8PQ')
+            .then(response => response.json())
+            .then(data => {
+                const rows = data.values;
+                let consultantOnCall = "No consultant is currently on call.";
+
+                for (let i = 1; i < rows.length; i++) {
+                    const rowDate = rows[i][0]; // Assuming date is in the first column (A)
+                    const doctor = rows[i][2];  // Consultant name in 3rd column
+                    const contact = rows[i][4]; // Contact number in 5th column
+
+                    // Match the date and hour for a consultant on-call duty
+                    if (rowDate === date && hour >= 8 && hour < 8 + 24) {
+                        consultantOnCall = `
+                            <strong>Doctor:</strong> ${doctor} <br>
+                            <strong>Contact:</strong> ${contact} <br>
+                            <strong>Duty Time:</strong> 08:00 - 08:00
+                        `;
+                        break;
+                    }
                 }
 
-                if (now >= startTime && now <= endTime) {
-                    return { doctor, contact, dutyTime };
-                }
-            }
-            return null;
-        }
-
-        function findSpecialistShift(data) {
-            const now = new Date();
-            for (const row of data) {
-                const [dateStr, , shift1ER, shift2ER, shift2Ward, shift3ER, shift3Ward] = row;
-
-                const dateParts = dateStr.split("/");
-                const currentTime = now.getHours();
-
-                // Determine shift based on time
-                if (currentTime >= 8 && currentTime < 16) {
-                    return { er: shift1ER, ward: "N/A", shift: "Shift 1 (08:00 - 16:00)" };
-                } else if (currentTime >= 16 && currentTime < 24) {
-                    return { er: shift2ER, ward: shift2Ward, shift: "Shift 2 (16:00 - 00:00)" };
-                } else {
-                    return { er: shift3ER, ward: shift3Ward, shift: "Shift 3 (00:00 - 08:00)" };
-                }
-            }
-            return null;
-        }
-
-        function updateConsultantInfo() {
-            fetchData(consultantSheet, rows => {
-                const shift = findCurrentShift(rows);
-                const consultantInfoDiv = document.getElementById("consultant-info");
-
-                if (shift) {
-                    consultantInfoDiv.innerHTML = `
-                        <h2>Consultant On-Call</h2>
-                        <p><strong>Doctor:</strong> Dr.${shift.doctor}</p>
-                        <p><strong>Contact:</strong> ${shift.contact}</p>
-                        <p><strong>Duty Time:</strong> ${shift.dutyTime}</p>
-                    `;
-                } else {
-                    consultantInfoDiv.innerHTML = `
-                        <h2>Consultant On-Call</h2>
-                        <p>No consultant is currently on-call.</p>
-                    `;
-                }
+                document.getElementById("consultantOnCall").innerHTML = consultantOnCall;
             });
         }
 
-        function updateSpecialistInfo() {
-            fetchData(specialistSheet, rows => {
-                const shift = findSpecialistShift(rows);
-                const specialistInfoDiv = document.getElementById("specialist-info");
+        function fetchSpecialistData(date, hour) {
+            fetch('https://sheets.googleapis.com/v4/spreadsheets/14d9VWCmjCE7_PcbLk73nLod08Y4eMlVB/values/Sheet2?key=AIzaSyAAv9OhKvEt5A6dpzr3gSfAEDiu8_IL8PQ')
+            .then(response => response.json())
+            .then(data => {
+                const rows = data.values;
+                let specialistOnCall = "No specialist is currently on call.";
 
-                if (shift) {
-                    specialistInfoDiv.innerHTML = `
-                        <h2>Specialist On-Call</h2>
-                        <p><strong>Current Shift:</strong> ER: ${shift.er}, Ward: ${shift.ward}</p>
-                    `;
-                } else {
-                    specialistInfoDiv.innerHTML = `
-                        <h2>Specialist On-Call</h2>
-                        <p>No specialist is currently on-call.</p>
-                    `;
+                for (let i = 1; i < rows.length; i++) {
+                    const rowDate = rows[i][0]; // Assuming date is in the first column (A)
+                    const shift1ER = rows[i][2];  // Shift 1 ER in 3rd column
+                    const shift2ER = rows[i][3];  // Shift 2 ER in 4th column
+                    const shift2Ward = rows[i][4];  // Shift 2 Ward in 5th column
+                    const shift3ER = rows[i][5];  // Shift 3 ER in 6th column
+                    const shift3Ward = rows[i][6];  // Shift 3 Ward in 7th column
+
+                    if (rowDate === date) {
+                        if (hour >= 8 && hour < 16) {
+                            specialistOnCall = `
+                                <strong>Current Shift:</strong> ER: ${shift1ER}, Ward: N/A
+                            `;
+                        } else if (hour >= 16 && hour < 24) {
+                            specialistOnCall = `
+                                <strong>Current Shift:</strong> ER: ${shift2ER}, Ward: ${shift2Ward}
+                            `;
+                        } else if (hour >= 0 && hour < 8) {
+                            specialistOnCall = `
+                                <strong>Current Shift:</strong> ER: ${shift3ER}, Ward: ${shift3Ward}
+                            `;
+                        }
+                        break;
+                    }
                 }
+
+                document.getElementById("specialistOnCall").innerHTML = specialistOnCall;
             });
         }
 
-        updateConsultantInfo();
-        updateSpecialistInfo();
+        // Call this function when the page loads
+        fetchConsultantAndSpecialistData();
     </script>
 </body>
 </html>
