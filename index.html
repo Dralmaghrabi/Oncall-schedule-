@@ -32,30 +32,37 @@
           .then((data) => data.values);
       }
 
-      function findCurrentOnCall(data) {
+      function findCurrentOnCall(data, isConsultant) {
         const now = new Date();
         const todayDate = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
         const currentTime = now.getHours();
         for (let i = 1; i < data.length; i++) {
           const row = data[i];
-          const [date, day, name, time, contact] = row;
-          const dutyTimes = time.split(' - ');
-          const startTime = parseInt(dutyTimes[0].split(':')[0]);
-          const endTime = parseInt(dutyTimes[1].split(':')[0]);
+          const [date, , name1, shift1ER, shift2ER, shift2Ward, shift3ER, shift3Ward] = row;
+          if (date === todayDate) {
+            if (isConsultant) {
+              return { name: name1 };
+            } else {
+              let shiftName = "";
+              if (currentTime >= 8 && currentTime < 16) shiftName = `ER: ${shift1ER}`;
+              else if (currentTime >= 16 && currentTime < 24) shiftName = `ER: ${shift2ER}, Ward: ${shift2Ward}`;
+              else shiftName = `ER: ${shift3ER}, Ward: ${shift3Ward}`;
 
-          if (date === todayDate && (currentTime >= startTime || currentTime < endTime)) {
-            return { name, contact, time };
+              return { shiftName };
+            }
           }
         }
         return null;
       }
 
-      function displaySchedule(type, data) {
+      function displaySchedule(type, data, isConsultant) {
         const scheduleBox = document.getElementById(`${type}-schedule`);
         if (data) {
-          scheduleBox.innerHTML = `<strong>Doctor:</strong> ${data.name}<br>
-                                   <strong>Contact:</strong> ${data.contact}<br>
-                                   <strong>Duty Time:</strong> ${data.time}`;
+          if (isConsultant) {
+            scheduleBox.innerHTML = `<strong>Doctor:</strong> ${data.name}`;
+          } else {
+            scheduleBox.innerHTML = `<strong>Current Shift:</strong> ${data.shiftName}`;
+          }
         } else {
           scheduleBox.innerHTML = `No ${type} is currently on-call.`;
         }
@@ -63,13 +70,13 @@
 
       function loadSchedules() {
         fetchSchedule("Sheet1").then((consultantData) => {
-          const consultantOnCall = findCurrentOnCall(consultantData);
-          displaySchedule("consultant", consultantOnCall);
+          const consultantOnCall = findCurrentOnCall(consultantData, true);
+          displaySchedule("consultant", consultantOnCall, true);
         });
 
         fetchSchedule("Sheet2").then((specialistData) => {
-          const specialistOnCall = findCurrentOnCall(specialistData);
-          displaySchedule("specialist", specialistOnCall);
+          const specialistOnCall = findCurrentOnCall(specialistData, false);
+          displaySchedule("specialist", specialistOnCall, false);
         });
       }
 
