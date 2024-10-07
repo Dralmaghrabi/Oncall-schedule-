@@ -3,6 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultant On-Call</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .card {
+            border: 1px solid #000;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .doctor-info {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Consultant On-Call</h1>
+
+    <div class="card">
+        <h2>Consultant On-Call</h2>
+        <div id="consultant"></div>
+    </div>
+
+    <script>
+        const apiKey = 'AIzaSyAAv9OhKvEt5A6dpzr3gSfAEDiu8_IL8PQ';
+        const spreadsheetId = '1-s7A-sGm19mClB1ryzEYbAWIm9hptVoPqjKZTs9ho7A';
+
+        // Helper function to fetch data from Google Sheets
+        async function fetchData(sheetName) {
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}?key=${apiKey}`;
+            const response = await fetch(url);
+            const data = await response.json();
+            return data.values;
+        }
+
+        // Function to determine the current on-call consultant
+        function findCurrentShift(data) {
+            const now = new Date();
+            const todayStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+            for (let i = 1; i < data.length; i++) {
+                const row = data[i];
+                const date = row[0];  // First column is the date
+
+                if (date === todayStr) {
+                    return {
+                        doctor: row[2],
+                        dutyTime: row[3],
+                        contact: row[4]
+                    };
+                }
+            }
+            return null;
+        }
+
+        // Display consultant on-call information
+        async function displayConsultantOnCall() {
+            const data = await fetchData('Sheet1');
+            const consultantOnCall = findCurrentShift(data);
+
+            const consultantDiv = document.getElementById('consultant');
+            if (consultantOnCall) {
+                consultantDiv.innerHTML = `
+                    <p class="doctor-info">Doctor: ${consultantOnCall.doctor}</p>
+                    <p>Contact: ${consultantOnCall.contact}</p>
+                    <p>Duty Time: ${consultantOnCall.dutyTime}</p>
+                `;
+            } else {
+                consultantDiv.textContent = 'No consultant is currently on-call.';
+            }
+        }
+
+        displayConsultantOnCall();
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>On-Call Schedules</title>
     <style>
         body {
