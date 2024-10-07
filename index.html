@@ -3,69 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consultant On-Call Information</title>
+    <title>On-Call Schedules</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
         }
-        h1 {
-            color: #333;
+        h2 {
+            color: #2c3e50;
         }
-        #onCallConsultant {
-            padding: 20px;
-            background-color: #f4f4f4;
-            border: 1px solid #ddd;
+        div {
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
-    <h1>Consultant On-Call Information</h1>
-    <div id="onCallConsultant">Loading...</div>
+    <h2>Consultant On-Call Schedule</h2>
+    <div id="consultant-schedule">Loading consultant data...</div>
+
+    <h2>Specialist On-Call Schedule</h2>
+    <div id="specialist-schedule">Loading specialist data...</div>
 
     <script>
-        const sheetID = '1-s7A-sGm19mClB1ryzEYbAWIm9hptVoPqjKZTs9ho7A';  // Your Google Sheets ID
-        const apiKey = 'AIzaSyAAv9OhKvEt5A6dpzr3gSfAEDiu8_IL8PQ';  // Your API Key
+        // Google Sheets API setup
+        const apiKey = 'AIzaSyAAv9OhKvEt5A6dpzr3gSfAEDiu8_IL8PQ';  // Your provided API key
+        const sheetId = '1-s7A-sGm19mClB1ryzEYbAWIm9hptVoPqjKZTs9ho7A'; // Google Sheet ID
 
-        async function fetchConsultantSchedule() {
-            const range = 'Sheet1!A1:E';  // Adjusted range to A1:E based on the columns in your sheet
-            const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetID}/values/${range}?key=${apiKey}`;
+        // Sheet URLs for Consultant (Sheet1) and Specialist (Sheet2)
+        const consultantUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Sheet1?key=${apiKey}`;
+        const specialistUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Sheet2?key=${apiKey}`;
+
+        // Function to fetch data from Google Sheets
+        async function fetchData(url) {
             const response = await fetch(url);
             const data = await response.json();
-            return data.values;
+            return data.values;  // Assuming the data is in 'values' array
         }
 
-        function getCurrentOnCall(schedule) {
-            const today = new Date();
-            const currentHour = today.getHours();  // Get the current hour (0-23)
+        // Function to display the Consultant data (Sheet1)
+        function displayConsultantData(data) {
+            const consultantDiv = document.getElementById('consultant-schedule');
+            consultantDiv.innerHTML = ""; // Clear previous data
 
-            // If current time is before 8 AM, use the previous day's date
-            if (currentHour < 8) {
-                today.setDate(today.getDate() - 1);  // Subtract 1 day
-            }
-
-            const currentDate = today.toLocaleDateString('en-GB');  // Format as DD/MM/YYYY
-            const currentConsultant = schedule.find(row => row[0] === currentDate);
-            return currentConsultant;
+            data.forEach((row, index) => {
+                if (index > 0) {  // Skip header row
+                    const div = document.createElement('div');
+                    div.innerHTML = `<strong>${row[0]}</strong> - ${row[1]} (Contact: ${row[2]})`;
+                    consultantDiv.appendChild(div);
+                }
+            });
         }
 
-        async function displayOnCallConsultant() {
-            const schedule = await fetchConsultantSchedule();
-            const onCallConsultant = getCurrentOnCall(schedule);
+        // Function to display the Specialist data (Sheet2)
+        function displaySpecialistData(data) {
+            const specialistDiv = document.getElementById('specialist-schedule');
+            specialistDiv.innerHTML = ""; // Clear previous data
 
-            const resultDiv = document.getElementById('onCallConsultant');
-            if (onCallConsultant) {
-                resultDiv.innerHTML = `
-                    <strong>Doctor:</strong> ${onCallConsultant[2]} <br>
-                    <strong>Contact:</strong> ${onCallConsultant[4]} <br>
-                    <strong>Duty Time:</strong> ${onCallConsultant[3]}
-                `;
-            } else {
-                resultDiv.innerHTML = 'No consultant is currently on call.';
-            }
+            data.forEach((row, index) => {
+                if (index > 0) {  // Skip header row
+                    const div = document.createElement('div');
+                    div.innerHTML = `<strong>${row[0]}</strong> - ${row[1]} (Contact: ${row[2]})`;
+                    specialistDiv.appendChild(div);
+                }
+            });
         }
 
-        window.onload = displayOnCallConsultant;
+        // Function to handle loading the data
+        async function loadSchedules() {
+            const consultantData = await fetchData(consultantUrl);
+            const specialistData = await fetchData(specialistUrl);
+
+            // Display both Consultant and Specialist schedules
+            displayConsultantData(consultantData);
+            displaySpecialistData(specialistData);
+        }
+
+        // Load the data when the page is ready
+        document.addEventListener('DOMContentLoaded', loadSchedules);
     </script>
 </body>
 </html>
