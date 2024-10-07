@@ -46,8 +46,11 @@
 
     function getCurrentDateTime() {
         const now = new Date();
-        const date = now.toISOString().split('T')[0];  // Get date in YYYY-MM-DD format
-        const time = now.getHours() + ':' + now.getMinutes(); // Get time in HH:MM format
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+        const year = now.getFullYear();
+        const date = `${day}/${month}/${year}`;  // Date in DD/MM/YYYY format
+        const time = now.getHours() + ':' + now.getMinutes(); // Time in HH:MM format
         return { date, time };
     }
 
