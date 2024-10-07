@@ -1,120 +1,90 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html>
+  <head>
     <title>On-Call Schedules</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
-        body {
-            font-family: Arial, sans-serif;
-        }
-        .container {
-            margin: 20px;
-        }
-        h1 {
-            text-align: center;
-        }
-        .schedule {
-            border: 1px solid #ccc;
-            padding: 10px;
-            margin-bottom: 20px;
-        }
-        .section-title {
-            font-weight: bold;
-        }
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+      }
+      h1 {
+        font-size: 24px;
+      }
+      .box {
+        border: 1px solid #000;
+        padding: 10px;
+        margin: 20px;
+        width: 300px;
+        display: inline-block;
+        text-align: left;
+      }
     </style>
-</head>
-<body>
+    <script>
+      const apiKey = "AIzaSyAAv9OhKvEt5A6dpzr3gSfAEDiu8_IL8PQ";
+      const spreadsheetId = "1-s7A-sGm19mClB1ryzEYbAWIm9hptVoPqjKZTs9ho7A";
 
-<div class="container">
-    <h1>On-Call Schedules</h1>
-    <div class="schedule">
-        <h2>Consultant On-Call</h2>
-        <p id="consultant">Loading Consultant data...</p>
-    </div>
-    <div class="schedule">
-        <h2>Specialist On-Call</h2>
-        <p id="specialist">Loading Specialist data...</p>
-    </div>
-</div>
+      function fetchSchedule(sheetName) {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}?key=${apiKey}`;
+        return fetch(url)
+          .then((response) => response.json())
+          .then((data) => data.values);
+      }
 
-<script>
-    const API_KEY = 'AIzaSyAAv9OhKvEt5A6dpzr3gSfAEDiu8_IL8PQ';
-    const SPREADSHEET_ID = '1-s7A-sGm19mClB1ryzEYbAWIm9hptVoPqjKZTs9ho7A';
-    const CONSULTANT_RANGE = 'Sheet1!A:E';
-    const SPECIALIST_RANGE = 'Sheet2!A:H';
-
-    function getCurrentDateTime() {
+      function findCurrentOnCall(data) {
         const now = new Date();
-        const day = String(now.getDate()).padStart(2, '0');
-        const month = String(now.getMonth() + 1).padStart(2, '0'); // Months are 0-based
-        const year = now.getFullYear();
-        const date = `${day}/${month}/${year}`;  // Date in DD/MM/YYYY format
-        const time = now.getHours() + ':' + now.getMinutes(); // Time in HH:MM format
-        return { date, time };
-    }
+        const todayDate = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+        const currentTime = now.getHours();
+        for (let i = 1; i < data.length; i++) {
+          const row = data[i];
+          const [date, day, name, time, contact] = row;
+          const dutyTimes = time.split(' - ');
+          const startTime = parseInt(dutyTimes[0].split(':')[0]);
+          const endTime = parseInt(dutyTimes[1].split(':')[0]);
 
-    function isCurrentShift(startTime, endTime, currentTime) {
-        const [startHour, startMinute] = startTime.split(':').map(Number);
-        const [endHour, endMinute] = endTime.split(':').map(Number);
-        const [currentHour, currentMinute] = currentTime.split(':').map(Number);
-
-        const start = startHour * 60 + startMinute;
-        const end = endHour * 60 + endMinute;
-        const current = currentHour * 60 + currentMinute;
-
-        if (start < end) {
-            return current >= start && current <= end;
-        } else {
-            return current >= start || current <= end;
+          if (date === todayDate && (currentTime >= startTime || currentTime < endTime)) {
+            return { name, contact, time };
+          }
         }
-    }
+        return null;
+      }
 
-    function fetchData(range, callback) {
-        fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}?key=${API_KEY}`)
-            .then(response => response.json())
-            .then(data => callback(data.values))
-            .catch(error => console.error('Error:', error));
-    }
-
-    function displayConsultantData(data) {
-        const { date, time } = getCurrentDateTime();
-        const currentConsultant = data.find(row => row[0] === date);
-        const consultantElement = document.getElementById('consultant');
-
-        if (currentConsultant) {
-            consultantElement.innerHTML = `
-                <strong>Doctor:</strong> ${currentConsultant[3]}<br>
-                <strong>Contact:</strong> ${currentConsultant[4]}<br>
-                <strong>Duty Time:</strong> ${currentConsultant[2]} - ${currentConsultant[3]}
-            `;
+      function displaySchedule(type, data) {
+        const scheduleBox = document.getElementById(`${type}-schedule`);
+        if (data) {
+          scheduleBox.innerHTML = `<strong>Doctor:</strong> ${data.name}<br>
+                                   <strong>Contact:</strong> ${data.contact}<br>
+                                   <strong>Duty Time:</strong> ${data.time}`;
         } else {
-            consultantElement.innerHTML = 'No consultant is currently on-call.';
+          scheduleBox.innerHTML = `No ${type} is currently on-call.`;
         }
-    }
+      }
 
-    function displaySpecialistData(data) {
-        const { date, time } = getCurrentDateTime();
-        const currentSpecialist = data.find(row => row[0] === date);
-        const specialistElement = document.getElementById('specialist');
+      function loadSchedules() {
+        fetchSchedule("Sheet1").then((consultantData) => {
+          const consultantOnCall = findCurrentOnCall(consultantData);
+          displaySchedule("consultant", consultantOnCall);
+        });
 
-        if (currentSpecialist) {
-            specialistElement.innerHTML = `
-                <strong>ER Specialist:</strong> ${currentSpecialist[3]}<br>
-                <strong>ER Contact:</strong> ${currentSpecialist[4]}<br>
-                <strong>Shift 1 (08:00 - 16:00):</strong> ${currentSpecialist[3]}<br>
-                <strong>Shift 2 (16:00 - 00:00):</strong> ${currentSpecialist[5]}<br>
-                <strong>Shift 3 (00:00 - 08:00):</strong> ${currentSpecialist[6]}
-            `;
-        } else {
-            specialistElement.innerHTML = 'No specialist is currently on-call.';
-        }
-    }
+        fetchSchedule("Sheet2").then((specialistData) => {
+          const specialistOnCall = findCurrentOnCall(specialistData);
+          displaySchedule("specialist", specialistOnCall);
+        });
+      }
 
-    fetchData(CONSULTANT_RANGE, displayConsultantData);
-    fetchData(SPECIALIST_RANGE, displaySpecialistData);
-
-</script>
-
-</body>
+      window.onload = loadSchedules;
+    </script>
+  </head>
+  <body>
+    <h1>On-Call Schedules</h1>
+    <div class="box" id="consultant-schedule">
+      <h2>Consultant On-Call</h2>
+      Loading...
+    </div>
+    <div class="box" id="specialist-schedule">
+      <h2>Specialist On-Call</h2>
+      Loading...
+    </div>
+  </body>
 </html>
