@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Specialist On-Call</title>
+    <title>On-Call Schedules</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -28,7 +28,12 @@
     </style>
 </head>
 <body>
-    <h1>Specialist On-Call</h1>
+    <h1>On-Call Schedules</h1>
+
+    <div class="card">
+        <h2>Consultant On-Call</h2>
+        <div id="consultant"></div>
+    </div>
 
     <div class="card">
         <h2>Specialist On-Call</h2>
@@ -47,8 +52,8 @@
             return data.values;
         }
 
-        // Function to determine the current shift for specialist
-        function findCurrentShift(data) {
+        // Function to determine the current shift for consultant or specialist
+        function findCurrentShift(data, sheetName) {
             const now = new Date();
             const todayStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
@@ -58,23 +63,52 @@
 
                 if (date === todayStr) {
                     const currentHour = now.getHours();
+                    
+                    // For consultants, there is only one column with duty
+                    if (sheetName === 'Sheet1') {
+                        return {
+                            doctor: row[2],
+                            dutyTime: row[3],
+                            contact: row[4]
+                        };
+                    }
 
-                    if (currentHour >= 8 && currentHour < 16) {
-                        return { erDoctor: row[2], wardDoctor: null, shift: '08:00 - 16:00' };  // Shift 1 ER only
-                    } else if (currentHour >= 16 && currentHour < 24) {
-                        return { erDoctor: row[3], wardDoctor: row[4], shift: '16:00 - 00:00' };  // Shift 2 ER + Ward
-                    } else {
-                        return { erDoctor: row[5], wardDoctor: row[6], shift: '00:00 - 08:00' };  // Shift 3 ER + Ward
+                    // For specialists, there are different shifts (columns for ER and Ward)
+                    if (sheetName === 'Sheet2') {
+                        if (currentHour >= 8 && currentHour < 16) {
+                            return { erDoctor: row[2], wardDoctor: null, shift: '08:00 - 16:00' };  // Shift 1 ER only
+                        } else if (currentHour >= 16 && currentHour < 24) {
+                            return { erDoctor: row[3], wardDoctor: row[4], shift: '16:00 - 00:00' };  // Shift 2 ER + Ward
+                        } else {
+                            return { erDoctor: row[5], wardDoctor: row[6], shift: '00:00 - 08:00' };  // Shift 3 ER + Ward
+                        }
                     }
                 }
             }
             return null;
         }
 
+        // Display consultant on-call information
+        async function displayConsultantOnCall() {
+            const data = await fetchData('Sheet1');
+            const consultantOnCall = findCurrentShift(data, 'Sheet1');
+
+            const consultantDiv = document.getElementById('consultant');
+            if (consultantOnCall) {
+                consultantDiv.innerHTML = `
+                    <p class="doctor-info">Doctor: ${consultantOnCall.doctor}</p>
+                    <p>Contact: ${consultantOnCall.contact}</p>
+                    <p>Duty Time: ${consultantOnCall.dutyTime}</p>
+                `;
+            } else {
+                consultantDiv.textContent = 'No consultant is currently on-call.';
+            }
+        }
+
         // Display specialist on-call information
         async function displaySpecialistOnCall() {
             const data = await fetchData('Sheet2');
-            const specialistOnCall = findCurrentShift(data);
+            const specialistOnCall = findCurrentShift(data, 'Sheet2');
 
             const specialistDiv = document.getElementById('specialist');
             if (specialistOnCall) {
@@ -88,6 +122,8 @@
             }
         }
 
+        // Run both consultant and specialist functions
+        displayConsultantOnCall();
         displaySpecialistOnCall();
     </script>
 </body>
