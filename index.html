@@ -52,15 +52,24 @@
             return data.values;
         }
 
-        // Function to determine current on-call for consultant
-        function findConsultantOnCall(data) {
+        // Function to determine the current on-call doctor for consultant or specialist
+        function findCurrentOnCall(data) {
             const now = new Date();
             const todayStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
             for (let i = 1; i < data.length; i++) {
-                const [date, , doctor, dutyTime, contact] = data[i];
+                const [date, , erShift1, erShift2, wardShift2, erShift3, wardShift3] = data[i];
                 if (date === todayStr) {
-                    return { doctor, dutyTime, contact };
+                    // Determine which shift is currently active based on the current time
+                    const currentHour = now.getHours();
+
+                    if (currentHour >= 8 && currentHour < 16) {
+                        return { doctor: erShift1, shift: '08:00 - 16:00' };
+                    } else if (currentHour >= 16 && currentHour < 0) {
+                        return { doctor: erShift2, wardDoctor: wardShift2, shift: '16:00 - 00:00' };
+                    } else {
+                        return { doctor: erShift3, wardDoctor: wardShift3, shift: '00:00 - 08:00' };
+                    }
                 }
             }
             return null;
@@ -69,45 +78,30 @@
         // Display consultant on-call information
         async function displayConsultantOnCall() {
             const data = await fetchData('Sheet1');
-            const consultantOnCall = findConsultantOnCall(data);
+            const consultantOnCall = findCurrentOnCall(data);
 
             const consultantDiv = document.getElementById('consultant');
             if (consultantOnCall) {
                 consultantDiv.innerHTML = `
                     <p class="doctor-info">Doctor: ${consultantOnCall.doctor}</p>
-                    <p>Contact: ${consultantOnCall.contact}</p>
-                    <p>Duty Time: ${consultantOnCall.dutyTime}</p>
+                    <p>Duty Time: ${consultantOnCall.shift}</p>
                 `;
             } else {
                 consultantDiv.textContent = 'No consultant is currently on-call.';
             }
         }
 
-        // Display specialist on-call information (kept as is)
+        // Display specialist on-call information
         async function displaySpecialistOnCall() {
             const data = await fetchData('Sheet2');
-            const now = new Date();
-            const todayStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const specialistOnCall = findCurrentOnCall(data);
 
             const specialistDiv = document.getElementById('specialist');
-            let currentShift = null;
-
-            for (let i = 1; i < data.length; i++) {
-                const [date, , erShift1, erShift2, wardShift2, erShift3, wardShift3] = data[i];
-                if (date === todayStr) {
-                    currentShift = { erShift1, erShift2, wardShift2, erShift3, wardShift3 };
-                    break;
-                }
-            }
-
-            if (currentShift) {
+            if (specialistOnCall) {
                 specialistDiv.innerHTML = `
-                    <p class="doctor-info">Doctor: ${currentShift.erShift1}</p>
-                    <p>Shift 1 ER: ${currentShift.erShift1}</p>
-                    <p>Shift 2 ER: ${currentShift.erShift2}</p>
-                    <p>Shift 2 Ward: ${currentShift.wardShift2}</p>
-                    <p>Shift 3 ER: ${currentShift.erShift3}</p>
-                    <p>Shift 3 Ward: ${currentShift.wardShift3}</p>
+                    <p class="doctor-info">ER Doctor: ${specialistOnCall.doctor}</p>
+                    <p>Ward Doctor: ${specialistOnCall.wardDoctor || 'N/A'}</p>
+                    <p>Duty Time: ${specialistOnCall.shift}</p>
                 `;
             } else {
                 specialistDiv.textContent = 'No specialist is currently on-call.';
