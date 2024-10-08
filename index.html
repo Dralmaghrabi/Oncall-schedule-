@@ -22,10 +22,17 @@
             font-weight: bold;
         }
 
+        .date-info {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
     </style>
 </head>
 <body>
     <h1>On-Call Schedules</h1>
+
+    <div class="date-info" id="dateToday"></div>
 
     <div class="card">
         <h2>Consultant On-Call</h2>
@@ -40,6 +47,14 @@
     <script>
         const apiKey = 'AIzaSyAAv9OhKvEt5A6dpzr3gSfAEDiu8_IL8PQ';
         const spreadsheetId = '1-s7A-sGm19mClB1ryzEYbAWIm9hptVoPqjKZTs9ho7A';
+
+        // Display today's date in DD/MM/YYYY format
+        function displayDateToday() {
+            const now = new Date();
+            const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
+            const todayStr = now.toLocaleDateString('en-GB', options);
+            document.getElementById('dateToday').textContent = `Today's Date: ${todayStr}`;
+        }
 
         // Helper function to fetch data from Google Sheets
         async function fetchData(sheetName) {
@@ -119,7 +134,8 @@
             }
         }
 
-        // Run both consultant and specialist functions
+        // Display the date and run both consultant and specialist functions
+        displayDateToday();
         displayConsultantOnCall();
         displaySpecialistOnCall();
     </script>
