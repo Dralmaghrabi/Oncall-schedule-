@@ -64,18 +64,31 @@
             return data.values;
         }
 
+        // Function to get current day starting from 8 AM logic
+        function getShiftDate() {
+            const now = new Date();
+            const currentHour = now.getHours();
+
+            // If it's before 8 AM, we consider it part of the previous day
+            if (currentHour < 8) {
+                now.setDate(now.getDate() - 1);
+            }
+
+            const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
+            return now.toLocaleDateString('en-GB', options);  // DD/MM/YYYY
+        }
+
         // Function to determine the current shift for consultant or specialist
         function findCurrentShift(data, sheetName) {
+            const todayStr = getShiftDate();
             const now = new Date();
-            const todayStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const currentHour = now.getHours();
 
             for (let i = 1; i < data.length; i++) {
                 const row = data[i];
                 const date = row[0];  // First column is the date
 
                 if (date === todayStr) {
-                    const currentHour = now.getHours();
-                    
                     // For consultants, there is only one column with duty
                     if (sheetName === 'Sheet1') {
                         return {
